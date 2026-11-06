@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>順立 11月經典PK賽 - 即時戰況彩金大看板</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- FontAwesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700;800;900&family=Noto+Sans+TC:wght@500;700;900&display=swap');
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: radial-gradient(circle at 50% 20%, #151d2f 0%, #0a0e17 50%, #04060a 100%);
+      color: #f8fafc;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    .font-num {
+      font-family: 'Chakra Petch', sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    .text-gold-shimmer {
+      background: linear-gradient(135deg, #fffbeb 0%, #fde047 30%, #eab308 60%, #ca8a04 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 35px rgba(234, 179, 8, 0.45);
+    }
+
+    .hud-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .hud-card:hover {
+      border-color: rgba(234, 179, 8, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 36px 0 rgba(234, 179, 8, 0.15);
+    }
+
+    /* 主畫面金色光暈脈衝動畫 */
+    @keyframes pulseGlow {
+      0%, 100% {
+        box-shadow: 0 0 45px rgba(234, 179, 8, 0.25), inset 0 0 25px rgba(234, 179, 8, 0.15);
+      }
+      50% {
+        box-shadow: 0 0 80px rgba(234, 179, 8, 0.55), inset 0 0 45px rgba(234, 179, 8, 0.35);
+      }
+    }
+
+    .glow-gold-box {
+      animation: pulseGlow 3s infinite ease-in-out;
+    }
+
+    /* 3秒無遮擋浮動橫幅進場與退場動畫 */
+    @keyframes floatBannerIn {
+      0% {
+        transform: translate(-50%, -60px) scale(0.85);
+        opacity: 0;
+      }
+      15% {
+        transform: translate(-50%, 0) scale(1.05);
+        opacity: 1;
+      }
+      25% {
+        transform: translate(-50%, 0) scale(1);
+        opacity: 1;
+      }
+      85% {
+        transform: translate(-50%, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, -40px) scale(0.9);
+        opacity: 0;
+      }
+    }
+
+    .floating-banner-active {
+      animation: floatBannerIn 3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* 掃光效果 */
+    .shimmer-effect {
+      position: relative;
+      overflow: hidden;
+    }
+    .shimmer-effect::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(60deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+      transform: rotate(30deg);
+      animation: shimmerMove 4s infinite linear;
+    }
+    @keyframes shimmerMove {
+      0% { transform: translate(-100%, -100%) rotate(30deg); }
+      100% { transform: translate(100%, 100%) rotate(30deg); }
+    }
+  </style>
+</head>
+<body class="p-3 lg:p-5 flex flex-col justify-between selection:bg-amber-400 selection:text-black relative min-h-screen">
+
+  <!-- 3秒無遮擋直接浮動特效橫幅 (主畫面完全不動，不加全黑遮罩) -->
+  <div id="float-toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none hidden max-w-2xl w-[92%] sm:w-auto">
+    <div class="bg-gradient-to-r from-red-950/95 via-amber-950/95 to-slate-900/95 border-2 border-amber-400/90 rounded-2xl sm:rounded-full px-5 sm:px-8 py-3.5 shadow-[0_10px_40px_rgba(245,158,11,0.6)] backdrop-blur-xl flex items-center gap-3.5 sm:gap-5">
+      
+      <!-- 閃爍圖示徽章 -->
+      <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-amber-500 to-red-500 flex items-center justify-center text-white text-lg sm:text-xl shadow-lg shrink-0 animate-bounce">
+        <i class="fa-solid fa-coins"></i>
+      </div>
+
+      <!-- 文字核心內容：通訊處姓名 + 下注金額 + 總彩金連鎖放大 -->
+      <div class="text-left leading-tight">
+        <div class="text-xs text-amber-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+          <span>即時新下注入池</span>
+          <span class="text-slate-400">|</span>
+          <span class="text-slate-300">總彩金已達 <strong id="toast-grand-pool" class="text-amber-300 font-num">NT$ 0</strong></span>
+        </div>
+        <div class="text-base sm:text-xl font-black text-white mt-0.5" id="toast-message">
+          <!-- 例如：順立阿伯 下注 2000元! -->
+          順立 • 王小明 下注 1,000元!
+        </div>
+      </div>
+
+      <!-- 右側彩色火花徽章 -->
+      <div class="hidden sm:flex flex-col items-center justify-center pl-2 border-l border-amber-500/30">
+        <span class="text-[10px] text-amber-300 font-bold">限時播報</span>
+        <span class="text-[11px] font-mono font-bold text-white">3s</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 頂部資訊列：標題、副標、即時連線狀態、控制按鈕 -->
+  <header class="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+    <div class="flex items-center gap-3">
+      <span class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-600 text-black font-black text-2xl shadow-[0_0_20px_rgba(245,158,11,0.5)]">
+        PK
+      </span>
+      <div>
+        <div class="flex items-center gap-2.5">
+          <h1 class="text-xl sm:text-2xl font-black tracking-wider text-white">
+            順立 11月經典PK賽
+          </h1>
+          <span class="px-2 py-0.5 rounded bg-red-950/80 border border-red-500/50 text-red-400 text-xs font-black tracking-wide">
+            大會即時開盤看板
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 font-medium">SHUNLI X MILLION TABLE (11/1 - 12/15) • 互助彩池依比例即時瓜分</p>
+      </div>
+    </div>
+
+    <!-- 右側狀態與操作列 -->
+    <div class="flex items-center gap-2.5">
+      <!-- 倒數更新計時與狀態燈號 -->
+      <div class="flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-mono">
+        <span id="conn-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+        <span id="conn-status" class="text-emerald-400 font-bold">雲端同步中</span>
+        <span class="text-slate-500">|</span>
+        <span class="text-slate-400" id="refresh-timer">5s 刷新</span>
+      </div>
+
+      <!-- 測試模擬新下注按鈕 (Demo 展現3秒無遮擋浮動特效) -->
+      <button onclick="triggerDemoBet()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs shadow-[0_0_15px_rgba(245,158,11,0.4)] flex items-center gap-1.5 transition active:scale-95">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <span>3秒特效演示</span>
+      </button>
+
+      <!-- 手動強制立即刷新按鈕 -->
+      <button onclick="fetchLatestData(true)" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs transition" title="立即手動更新">
+        <i class="fa-solid fa-arrows-rotate" id="btn-refresh-icon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 核心中央主視覺：大大的累積總彩金 (主畫面始終清晰可見，不被黑屏擋住) -->
+  <main class="my-3 sm:my-4">
+    <div class="hud-card glow-gold-box shimmer-effect rounded-3xl p-5 sm:p-7 text-center relative overflow-hidden border border-amber-500/40">
+      <!-- 背景光暈 -->
+      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="flex items-center justify-center gap-2 mb-1">
+        <i class="fa-solid fa-crown text-amber-400 text-sm sm:text-base"></i>
+        <span class="text-xs sm:text-sm font-black text-amber-300/90 uppercase tracking-widest">
+          全場即時累積總彩金池
+        </span>
+        <i class="fa-solid fa-crown text-amber-400 text-sm sm:text-base"></i>
+      </div>
+
+      <!-- 超大總彩金主文字 -->
+      <div class="flex items-baseline justify-center gap-2 sm:gap-3 my-1">
+        <span class="text-2xl sm:text-4xl lg:text-5xl font-black text-amber-400/90 font-num">NT$</span>
+        <span id="grand-total-pool" class="text-5xl sm:text-7xl lg:text-8xl font-black text-gold-shimmer font-num tracking-tight drop-shadow-[0_4px_30px_rgba(245,158,11,0.5)]">
+          0
+        </span>
+      </div>
+
+      <!-- 輔助指標：全場總注數、下注人次(真實人數)、最後一筆更新 -->
+      <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mt-3 text-xs sm:text-sm text-slate-300 font-medium">
+        <div class="flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-xl border border-slate-800">
+          <i class="fa-solid fa-ticket text-amber-400"></i>
+          <span>全場總注數：</span>
+          <strong id="grand-total-bets" class="text-amber-300 font-num font-bold text-base">0</strong>
+          <span class="text-slate-500 text-xs">注</span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-xl border border-slate-800">
+          <i class="fa-solid fa-users text-sky-400"></i>
+          <span>參與同仁：</span>
+          <strong id="grand-total-people" class="text-sky-300 font-num font-bold text-base">0</strong>
+          <span class="text-slate-500 text-xs">人</span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-xl border border-slate-800">
+          <i class="fa-regular fa-clock text-emerald-400"></i>
+          <span>最新動態：</span>
+          <span id="last-update-time" class="text-slate-300 font-mono text-xs">連線中...</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 下方 8 個組合各自的彩金與即時盤口 (橫式並排 8 格，自適應螢幕) -->
+  <section class="space-y-2">
+    <div class="flex items-center justify-between px-1">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-trophy text-amber-400 text-xs"></i>
+        <h3 class="text-xs sm:text-sm font-black text-slate-200 tracking-wider">
+          8 大對決組合即時彩金與盤口分佈
+        </h3>
+      </div>
+      <span class="text-[11px] text-slate-400">字型依大會規範層級精確排定 • 獲勝組獨贏該場全部彩金</span>
+    </div>
+
+    <!-- 8 格卡片響應式排列 -->
+    <div id="matchups-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+      <!-- 由 JavaScript 動態生成 8 場精美 HUD 卡片 -->
+    </div>
+  </section>
+
+  <!-- 頁尾備註與即時連線網址資訊 -->
+  <footer class="mt-4 pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500">
+    <div class="flex items-center gap-2">
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+      <span>正本資料來源：<a href="https://docs.google.com/spreadsheets/d/1srO3QPRUZD6boywRnGBMmQKHfch8ypahTkLVNkjt7Zk/edit" target="_blank" class="text-slate-400 hover:text-amber-400 underline">順立11月經典PK賽_下注總名冊與彩金試算表</a></span>
+    </div>
+    <div class="font-mono text-slate-500">
+      每 5 秒長輪詢 • 主畫面常駐 • 浮動 3 秒即時播報
+    </div>
+  </footer>
+
+  <script>
+    // 綁定主辦人試算表 Webhook 網址
+    const GAS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbz2nz2mLmFEkuKQgCwIk0JhSD5nL3PeOwYyn1qcKg_bVBIySNhkAjF1L3Wyt5ixa_cu8g/exec";
+    const PRICE_PER_BET = 100;
+
+    // 8 個對戰組合基本資料
+    const MATCHUPS = [
+      {
+        id: 1,
+        title: "《攜手重返榮耀前進峇里島組》",
+        red: { name: "紋綺・志弘", hint: "紋綺、志弘" },
+        blue: { name: "宛渝・麗仔", hint: "宛渝、麗仔" }
+      },
+      {
+        id: 2,
+        title: "《BVA停賣了該怎麼辦組》",
+        red: { name: "培芬・冠升・嘉儀", hint: "培芬、冠升、嘉儀" },
+        blue: { name: "宇辰・俊琪・菀秦", hint: "宇辰、俊琪、菀秦" }
+      },
+      {
+        id: 3,
+        title: "《假好心隔壁鄰居組》",
+        red: { name: "露西・政偉・姚君", hint: "露西、政偉、姚君" },
+        blue: { name: "凱鈞・宇廷・奕詩", hint: "凱鈞、宇廷、奕詩" }
+      },
+      {
+        id: 4,
+        title: "《愷玲體系區鬩牆組》",
+        red: { name: "杏釔・依苓・思品", hint: "杏釔、依苓、思品" },
+        blue: { name: "慶文・侑真・愷玲", hint: "慶文、侑真、愷玲" }
+      },
+      {
+        id: 5,
+        title: "《老經理們大戰老襄理們組》",
+        red: { name: "崢嶸・怡伶・羿婷", hint: "老經理們" },
+        blue: { name: "建宏・佳穎・沈正", hint: "老襄理們" }
+      },
+      {
+        id: 6,
+        title: "《大隊長阿伯一定贏組》",
+        red: { name: "文鴻・菀婷・御航", hint: "大隊長阿伯隊" },
+        blue: { name: "孝謙・敬茹・藝芯", hint: "孝謙、敬茹、藝芯" }
+      },
+      {
+        id: 7,
+        title: "《再給主管輸我們一次的機會組》",
+        red: { name: "威武", hint: "威武主管" },
+        blue: { name: "冠瑜・睿恩・瑋儒", hint: "冠瑜、睿恩、瑋儒" }
+      },
+      {
+        id: 8,
+        title: "《四隻飛蛾撲火組》",
+        red: { name: "沈剛・悅悌", hint: "神人夫妻檔" },
+        blue: { name: "靜渝・喬淇・緯展・繼鴻", hint: "四隻飛蛾" }
+      }
+    ];
+
+    // 全域狀態
+    let state = {
+      totals: {
+        1: { red: 0, blue: 0 }, 2: { red: 0, blue: 0 },
+        3: { red: 0, blue: 0 }, 4: { red: 0, blue: 0 },
+        5: { red: 0, blue: 0 }, 6: { red: 0, blue: 0 },
+        7: { red: 0, blue: 0 }, 8: { red: 0, blue: 0 }
+      },
+      grandTotalBets: 0,
+      grandTotalPool: 0,
+      grandTotalPeople: 0,
+      lastOrderSignature: "",
+      hasInitialized: false
+    };
+
+    let countdown = 5;
+    let timerInterval = null;
+
+    window.onload = function() {
+      // 讀取本地快取備份
+      initLocalFallbackData();
+      renderMatchCards();
+      updateGrandDisplays(false);
+
+      // 初次連線
+      fetchLatestData(false);
+
+      // 啟動輪詢計時器
+      startPollingLoop();
+    };
+
+    function initLocalFallbackData() {
+      try {
+        const saved = localStorage.getItem('shunli_pk_submissions_2026');
+        if (saved) {
+          const list = JSON.parse(saved);
+          applySubmissionsToState(list);
+        }
+      } catch(e) {}
+    }
+
+    function applySubmissionsToState(list) {
+      if (!list || !Array.isArray(list)) return;
+      const newTotals = {
+        1: { red: 0, blue: 0 }, 2: { red: 0, blue: 0 },
+        3: { red: 0, blue: 0 }, 4: { red: 0, blue: 0 },
+        5: { red: 0, blue: 0 }, 6: { red: 0, blue: 0 },
+        7: { red: 0, blue: 0 }, 8: { red: 0, blue: 0 }
+      };
+      let totalBets = 0;
+      list.forEach(sub => {
+        (sub.details || []).forEach(d => {
+          if (newTotals[d.matchId]) {
+            if (d.side === 'red') newTotals[d.matchId].red += d.count;
+            if (d.side === 'blue') newTotals[d.matchId].blue += d.count;
+            totalBets += d.count;
+          }
+        });
+      });
+      state.totals = newTotals;
+      state.grandTotalBets = totalBets;
+      state.grandTotalPool = totalBets * PRICE_PER_BET;
+      state.grandTotalPeople = list.length;
+    }
+
+    function renderMatchCards() {
+      const grid = document.getElementById('matchups-grid');
+      grid.innerHTML = MATCHUPS.map(m => {
+        const t = state.totals[m.id] || { red: 0, blue: 0 };
+        const matchBets = t.red + t.blue;
+        const matchPool = matchBets * PRICE_PER_BET;
+
+        let redPct = 50;
+        let bluePct = 50;
+        let redPayout = '—';
+        let bluePayout = '—';
+
+        if (matchBets > 0) {
+          redPct = t.red > 0 ? Math.round((t.red / matchBets) * 100) : 0;
+          bluePct = 100 - redPct;
+          redPayout = t.red > 0 ? '$' + (matchPool / t.red).toFixed(0) : '無';
+          bluePayout = t.blue > 0 ? '$' + (matchPool / t.blue).toFixed(0) : '無';
+        }
+
+        return `
+          <div id="card-match-${m.id}" class="hud-card rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between border border-slate-800 relative overflow-hidden">
+            <div>
+              <div class="flex items-start justify-between gap-1.5 mb-1.5">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-lg bg-amber-500/20 text-amber-400 font-num font-black text-xs shrink-0">
+                      #${m.id}
+                    </span>
+                    <h4 class="text-xs font-black text-slate-200 truncate" title="${m.title}">
+                      ${m.title}
+                    </h4>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 該場組合專屬彩金池 (字型明顯小於中央總彩金) -->
+              <div class="bg-black/50 px-2.5 py-1.5 rounded-xl border border-slate-800/80 flex items-baseline justify-between mb-2">
+                <span class="text-[10px] text-slate-400 font-bold">該場累計彩金</span>
+                <div class="flex items-baseline gap-1">
+                  <span class="text-xs font-bold text-amber-400 font-num">NT$</span>
+                  <span id="pool-match-${m.id}" class="text-base sm:text-lg font-black text-amber-300 font-num">
+                    ${matchPool.toLocaleString()}
+                  </span>
+                  <span class="text-[10px] text-slate-500 font-num">(${matchBets}注)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 中間支持率光條 -->
+            <div class="space-y-1.5 my-1">
+              <div class="h-2.5 w-full bg-slate-900 rounded-full overflow-hidden flex text-[9px] font-num font-black leading-[10px]">
+                <div id="bar-red-${m.id}" style="width: ${redPct}%" class="bg-gradient-to-r from-red-600 to-rose-500 text-white transition-all duration-700"></div>
+                <div id="bar-blue-${m.id}" style="width: ${bluePct}%" class="bg-gradient-to-r from-sky-500 to-blue-600 text-white transition-all duration-700"></div>
+              </div>
+
+              <!-- 雙方注數與預估每注彩金 -->
+              <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                <div class="p-1.5 rounded-lg bg-red-950/30 border border-red-500/20">
+                  <div class="text-rose-400 font-bold truncate text-[11px]" title="${m.red.name}">${m.red.name}</div>
+                  <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                    <span>注數:</span>
+                    <span id="bets-red-${m.id}" class="font-num font-bold text-white">${t.red}注</span>
+                  </div>
+                  <div class="flex justify-between text-[10px] text-amber-300/90 font-mono">
+                    <span>勝派:</span>
+                    <strong id="payout-red-${m.id}">${redPayout}</strong>
+                  </div>
+                </div>
+
+                <div class="p-1.5 rounded-lg bg-blue-950/30 border border-blue-500/20">
+                  <div class="text-sky-400 font-bold truncate text-[11px]" title="${m.blue.name}">${m.blue.name}</div>
+                  <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                    <span>注數:</span>
+                    <span id="bets-blue-${m.id}" class="font-num font-bold text-white">${t.blue}注</span>
+                  </div>
+                  <div class="flex justify-between text-[10px] text-amber-300/90 font-mono">
+                    <span>勝派:</span>
+                    <strong id="payout-blue-${m.id}">${bluePayout}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateGrandDisplays(animate) {
+      const grandPoolEl = document.getElementById('grand-total-pool');
+      const grandBetsEl = document.getElementById('grand-total-bets');
+      const grandPeopleEl = document.getElementById('grand-total-people');
+
+      const targetPool = state.grandTotalPool;
+      const targetBets = state.grandTotalBets;
+      const targetPeople = state.grandTotalPeople;
+
+      if (!animate) {
+        grandPoolEl.innerText = targetPool.toLocaleString();
+        grandBetsEl.innerText = targetBets.toLocaleString();
+        grandPeopleEl.innerText = targetPeople.toLocaleString();
+      } else {
+        animateValue(grandPoolEl, parseInt(grandPoolEl.innerText.replace(/,/g,'')) || 0, targetPool, 800);
+        grandBetsEl.innerText = targetBets.toLocaleString();
+        grandPeopleEl.innerText = targetPeople.toLocaleString();
+      }
+    }
+
+    function animateValue(obj, start, end, duration) {
+      if (start === end) {
+        obj.innerText = end.toLocaleString();
+        return;
+      }
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const current = Math.floor(progress * (end - start) + start);
+        obj.innerText = current.toLocaleString();
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
+        } else {
+          obj.innerText = end.toLocaleString();
+        }
+      };
+      window.requestAnimationFrame(step);
+    }
+
+    function startPollingLoop() {
+      if (timerInterval) clearInterval(timerInterval);
+      countdown = 5;
+      timerInterval = setInterval(() => {
+        countdown--;
+        const timerEl = document.getElementById('refresh-timer');
+        if (timerEl) timerEl.innerText = `${countdown}s 刷新`;
+        if (countdown <= 0) {
+          countdown = 5;
+          fetchLatestData(false);
+        }
+      }, 1000);
+    }
+
+    // 向雲端 Google Apps Script 取得最新即時注數、真實人數與最新下單者
+    function fetchLatestData(manualClick) {
+      const icon = document.getElementById('btn-refresh-icon');
+      if (icon) icon.classList.add('fa-spin');
+
+      document.getElementById('conn-status').innerText = "更新中...";
+      document.getElementById('conn-dot').className = "w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping";
+
+      fetch(GAS_WEBHOOK_URL + "?action=getTotals&t=" + Date.now())
+        .then(res => res.json())
+        .then(data => {
+          if (icon) icon.classList.remove('fa-spin');
+          document.getElementById('conn-status').innerText = "已連線雲端";
+          document.getElementById('conn-dot').className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+          document.getElementById('last-update-time').innerText = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+
+          if (data && data.status === 'success') {
+            handleCloudDataUpdate(data);
+          }
+        })
+        .catch(err => {
+          if (icon) icon.classList.remove('fa-spin');
+          document.getElementById('conn-status').innerText = "本機同步模式";
+          document.getElementById('conn-dot').className = "w-2.5 h-2.5 rounded-full bg-sky-400";
+          document.getElementById('last-update-time').innerText = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+          checkLocalStorageUpdate();
+        });
+    }
+
+    // 處理雲端試算表回傳之真實數據
+    function handleCloudDataUpdate(data) {
+      const previousPool = state.grandTotalPool;
+      const newTotals = data.totals || state.totals;
+      const newTotalPeople = typeof data.totalPeople === 'number' ? data.totalPeople : state.grandTotalPeople;
+      
+      let newTotalBets = 0;
+      for (let m = 1; m <= 8; m++) {
+        if (newTotals[m]) {
+          newTotalBets += (newTotals[m].red || 0) + (newTotals[m].blue || 0);
+        }
+      }
+      const newPool = newTotalBets * PRICE_PER_BET;
+
+      state.totals = newTotals;
+      state.grandTotalBets = newTotalBets;
+      state.grandTotalPool = newPool;
+      state.grandTotalPeople = newTotalPeople;
+
+      renderMatchCards();
+      updateGrandDisplays(state.hasInitialized);
+
+      // 若非初次載入且彩金池增加，觸發「3秒無遮擋浮動特效」！
+      if (state.hasInitialized && newPool > previousPool && previousPool > 0) {
+        const addedAmount = newPool - previousPool;
+        const latest = data.latestOrder || {};
+        const dept = latest.dept || "順立";
+        const name = latest.name || "同仁";
+        const amount = latest.totalAmount || addedAmount;
+
+        showFloatingNotification(`${dept} ${name} 下注 ${amount.toLocaleString()}元!`, newPool);
+      }
+
+      state.hasInitialized = true;
+    }
+
+    // 本機 fallback 檢查
+    function checkLocalStorageUpdate() {
+      try {
+        const saved = localStorage.getItem('shunli_pk_submissions_2026');
+        if (saved) {
+          const list = JSON.parse(saved);
+          if (list.length > 0) {
+            const latest = list[0];
+            const currentSignature = latest.id + '_' + latest.timestamp;
+            if (state.lastOrderSignature && state.lastOrderSignature !== currentSignature) {
+              applySubmissionsToState(list);
+              renderMatchCards();
+              updateGrandDisplays(true);
+              const dept = latest.dept || "順立";
+              const name = latest.name || "同仁";
+              const amount = latest.totalAmount || 0;
+              showFloatingNotification(`${dept} ${name} 下注 ${amount.toLocaleString()}元!`, state.grandTotalPool);
+            } else {
+              applySubmissionsToState(list);
+              renderMatchCards();
+              updateGrandDisplays(false);
+            }
+            state.lastOrderSignature = currentSignature;
+          }
+        }
+      } catch(e) {}
+    }
+
+    // 核心特效：主畫面完全不動，僅在頂部浮動顯示限時 3 秒橫幅 + 側邊金花
+    let toastTimeout = null;
+    function showFloatingNotification(text, grandPool) {
+      // 兩側輕量紙花 (不阻礙視線)
+      confetti({
+        particleCount: 25,
+        spread: 50,
+        origin: { x: 0.1, y: 0.2 },
+        colors: ['#f59e0b', '#ef4444', '#10b981']
+      });
+      confetti({
+        particleCount: 25,
+        spread: 50,
+        origin: { x: 0.9, y: 0.2 },
+        colors: ['#f59e0b', '#ef4444', '#38bdf8']
+      });
+
+      const toast = document.getElementById('float-toast');
+      const msgEl = document.getElementById('toast-message');
+      const poolEl = document.getElementById('toast-grand-pool');
+
+      msgEl.innerText = text;
+      poolEl.innerText = 'NT$ ' + (grandPool || state.grandTotalPool).toLocaleString();
+
+      // 重啟 3 秒動畫
+      toast.classList.remove('hidden');
+      toast.classList.remove('floating-banner-active');
+      void toast.offsetWidth; // 強制重繪
+      toast.classList.add('floating-banner-active');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('floating-banner-active');
+      }, 3000); // 準確 3 秒
+    }
+
+    // 測試專用按鈕：示範「順立阿伯 下注 2000元!」3秒浮動特效
+    function triggerDemoBet() {
+      const demoNames = [
+        { dept: "順立", name: "阿伯", amount: 2000, bets: 20 },
+        { dept: "順立", name: "文鴻", amount: 1500, bets: 15 },
+        { dept: "順可", name: "李經理", amount: 3000, bets: 30 },
+        { dept: "順豐", name: "張雅婷", amount: 1000, bets: 10 }
+      ];
+      const pick = demoNames[Math.floor(Math.random() * demoNames.length)];
+      const randomMatch = Math.floor(Math.random() * 8) + 1;
+      const randomSide = Math.random() > 0.5 ? 'red' : 'blue';
+
+      state.totals[randomMatch][randomSide] += pick.bets;
+      state.grandTotalBets += pick.bets;
+      state.grandTotalPool += pick.amount;
+      state.grandTotalPeople += 1;
+
+      renderMatchCards();
+      updateGrandDisplays(true);
+
+      // 直接浮動顯示 3 秒
+      showFloatingNotification(`${pick.dept}${pick.name} 下注 ${pick.amount.toLocaleString()}元!`, state.grandTotalPool);
+    }
+  </script>
+</body>
+</html>
